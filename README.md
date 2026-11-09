@@ -7,7 +7,7 @@ Images come from Wikimedia Commons (with Unsplash as a fallback), and source lin
 
 ## Run it locally
 
-You need **Node.js 20.9 or newer**.
+You need **Node.js 20.9 or newer** and **Git**.
 
 ```bash
 git clone https://github.com/delroyZN/top-10-app.git
@@ -16,12 +16,19 @@ npm install
 cp .env.example .env.local     # on Windows: copy .env.example .env.local
 ```
 
-Open `.env.local` and fill in:
+### Choose how lists get written
 
-| Variable | Required | Where to get it |
-| --- | --- | --- |
-| `ANTHROPIC_API_KEY` | yes | https://console.anthropic.com/settings/keys |
-| `UNSPLASH_ACCESS_KEY` | recommended | Create an app at https://unsplash.com/oauth/applications and copy its **Access Key** |
+**No API key (local Claude Code):** if `ANTHROPIC_API_KEY` is empty, the server runs the
+[Claude Code](https://claude.com/claude-code) CLI on your computer (`claude -p`), so lists are written with
+your Claude subscription. Install Claude Code, run `claude` once in a terminal and sign in, then check that
+`claude --version` works in the same terminal you'll start the app from. This mode only works when the
+app runs on a machine where Claude Code is installed (for example `npm run dev` on your laptop), not on a
+hosted server.
+
+**API key:** put your key from https://console.anthropic.com/settings/keys in `ANTHROPIC_API_KEY`.
+
+`UNSPLASH_ACCESS_KEY` is optional in both modes. Create an app at https://unsplash.com/oauth/applications and
+copy its **Access Key**. Without it, items that have no Wikimedia image get a styled placeholder.
 
 Then start the dev server:
 
@@ -29,16 +36,18 @@ Then start the dev server:
 npm run dev
 ```
 
-Open http://localhost:3000.
+Open http://localhost:3000. A list takes about 15 to 40 seconds.
 
-Without an Unsplash key the app still works. Items that don't have a Wikimedia image get a styled placeholder instead.
-To try the UI without any API key, set `MOCK_GENERATION=1` in `.env.local` to use a built-in sample list.
+To try the UI without calling Claude at all, set `MOCK_GENERATION=1` in `.env.local`.
 
 ### Optional settings (`.env.local`)
 
 | Variable | Default | What it does |
 | --- | --- | --- |
-| `CLAUDE_MODEL` | `claude-opus-5-5` | Model used to write the lists |
+| `CLAUDE_MODE` | auto | `api` or `cli`. Auto uses the API when a key is set, otherwise the CLI |
+| `CLAUDE_CLI_PATH` | `claude` | Path to the Claude Code CLI if it isn't on your PATH |
+| `CLAUDE_CLI_MODEL` | your Claude Code default | Model for CLI mode, e.g. `opus` or `sonnet` |
+| `CLAUDE_MODEL` | `claude-opus-5-5` | Model for API mode |
 | `CLAUDE_EFFORT` | `low` | `low`, `medium` or `high`. Higher is slower but more careful |
 | `RATE_LIMIT_PER_MINUTE` | `5` | New lists per IP per minute |
 | `RATE_LIMIT_PER_HOUR` | `30` | New lists per IP per hour |
@@ -48,7 +57,7 @@ To try the UI without any API key, set `MOCK_GENERATION=1` in `.env.local` to us
 
 1. The home page sends you to `/list?topic=…`, which calls `POST /api/generate`.
 2. The route validates the topic, checks the per-IP rate limit, and asks Claude for a strict JSON list
-   (structured outputs). The answer is checked with zod: exactly 10 items, ranks 1–10, no empty fields.
+   (structured outputs), through the Anthropic API or the local Claude Code CLI (`src/lib/server/claude/`). The answer is checked with zod: exactly 10 items, ranks 1–10, no empty fields.
    If it fails, the route retries once and tells Claude what was wrong. If that also fails, you get a friendly error.
 3. Each `wikipediaTitle` is checked against Wikipedia in one batched request. Titles that don't exist, or that
    point to disambiguation pages, are dropped, so made-up titles never become source links.
@@ -78,7 +87,8 @@ src/
     content.ts               Example topics, loading messages
     prompts/                 System/user prompts per content mode
     images/                  wikimedia.ts, unsplash.ts, resolveImage.ts (fallback chain)
-    server/                  claude.ts, wikipedia.ts, enrich.ts, rateLimit.ts, cache.ts, env.ts
+    server/claude/           apiBackend.ts (Anthropic API), cliBackend.ts (local Claude Code), index.ts (validate + retry)
+    server/                  wikipedia.ts, enrich.ts, rateLimit.ts, cache.ts, env.ts
     client/                  Browser-side API wrapper
 ```
 
