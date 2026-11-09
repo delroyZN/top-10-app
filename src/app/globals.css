@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-ink: #09090c;
+  --color-ink-2: #121218;
+  --color-ink-3: #1c1c25;
+  --color-line: #2a2a36;
+  --color-bone: #f4f1ea;
+  --color-mute: #9c9aa8;
+  --color-accent: #ffd60a;
+  --color-hot: #ff3d2e;
+  --color-gold: #ffc93c;
+
+  --font-sans: var(--font-body);
+  --font-display: var(--font-anton);
+}
+
+html {
+  color-scheme: dark;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-bone);
+}
+
+/* Subtle film grain + vignette for the "show" look. */
+.stage::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% -10%, rgb(255 214 10 / 0.10), transparent 55%),
+    radial-gradient(ellipse at 50% 120%, rgb(255 61 46 / 0.12), transparent 60%);
+  z-index: 0;
+}
+
+/* Big outlined numerals behind items. */
+.rank-outline {
+  -webkit-text-stroke: 2px rgb(244 241 234 / 0.9);
+  color: transparent;
+}
+.rank-outline-gold {
+  -webkit-text-stroke: 2px var(--color-gold);
+  color: transparent;
+}
+
+.text-shadow-hard {
+  text-shadow: 4px 4px 0 rgb(0 0 0 / 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
